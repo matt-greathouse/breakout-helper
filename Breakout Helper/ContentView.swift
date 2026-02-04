@@ -9,16 +9,25 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        TabView {
+            NavigationStack {
+                MainView()
+            }
+                .tabItem {
+                    Label("Breakout", systemImage: "person.3.fill")
+                }
+
+            NavigationStack {
+                SettingsView()
+            }
+                .tabItem {
+                    Label("Settings", systemImage: "slider.horizontal.3")
+                }
         }
-        .padding()
     }
 }
 
 #Preview {
     ContentView()
+        .environmentObject(BreakoutStore())
 }

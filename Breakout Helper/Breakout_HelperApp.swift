@@ -9,9 +9,18 @@ import SwiftUI
 
 @main
 struct Breakout_HelperApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var store = BreakoutStore()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(store)
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                store.resetIfNeeded()
+            }
         }
     }
 }
