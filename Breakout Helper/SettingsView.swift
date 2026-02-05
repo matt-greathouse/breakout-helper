@@ -63,14 +63,22 @@ struct SettingsView: View {
         action: @escaping () -> Void
     ) -> some View {
         HStack(spacing: 12) {
+            let commit = {
+                if text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    return
+                }
+                action()
+                focusedField = field
+            }
+
             TextField(placeholder, text: text)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
                 .focused($focusedField, equals: field)
+                .onSubmit { commit() }
 
             Button("Add") {
-                action()
-                focusedField = nil
+                commit()
             }
             .buttonStyle(.bordered)
             .disabled(text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
