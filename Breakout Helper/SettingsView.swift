@@ -88,8 +88,16 @@ struct SettingsView: View {
 }
 
 #Preview {
-    NavigationStack {
+    let store = BreakoutStore()
+    store.students = [
+        Person(id: UUID(), name: "Avery", isEnabled: true),
+        Person(id: UUID(), name: "Jordan", isEnabled: false)
+    ]
+    store.guests = [
+        Person(id: UUID(), name: "Casey", isEnabled: true)
+    ]
+    return NavigationStack {
         SettingsView()
-            .environmentObject(BreakoutStore())
+            .environmentObject(store)
     }
 }

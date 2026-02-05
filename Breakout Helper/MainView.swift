@@ -8,45 +8,65 @@ struct MainView: View {
 
     var body: some View {
         Form {
-            Section {
-                Text("Active participants: \(store.activeParticipants.count) of \(store.students.count + store.guests.count)")
-                    .foregroundStyle(.secondary)
-            }
+            if store.students.isEmpty && store.guests.isEmpty {
+                Section {
+                    VStack(spacing: 12) {
+                        Image(systemName: "person.3.fill")
+                            .font(.system(size: 36))
+                            .foregroundStyle(.secondary)
 
-            Section("Minimum group size") {
-                Stepper(value: $minGroupSize, in: 2...12) {
-                    Text("\(minGroupSize) people")
-                }
-            }
+                        Text("Add people to get started")
+                            .font(.headline)
 
-            Section {
-                Button(action: breakout) {
-                    Text(store.groups.isEmpty ? "BREAKOUT" : "BREAKOUT AGAIN")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(store.activeParticipants.isEmpty)
-                .scaleEffect(isPressingBreakout ? 0.98 : 1.0)
-                .animation(.spring(response: 0.25, dampingFraction: 0.6), value: isPressingBreakout)
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 0).updating($isPressingBreakout) { _, state, _ in
-                        state = true
+                        Text("Go to Settings to add people.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
                     }
-                )
-            }
-
-            Section("Groups") {
-                if store.groups.isEmpty {
-                    Text("No groups yet. Tap BREAKOUT to create them.")
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 24)
+                }
+            } else {
+                Section {
+                    Text("Active participants: \(store.activeParticipants.count) of \(store.students.count + store.guests.count)")
                         .foregroundStyle(.secondary)
-                } else {
-                    ForEach(Array(store.groups.enumerated()), id: \.offset) { index, group in
-                        GroupRowView(
-                            index: index,
-                            group: group,
-                            revealID: revealID
-                        )
+                }
+
+                Section("Minimum group size") {
+                    Stepper(value: $minGroupSize, in: 2...12) {
+                        Text("\(minGroupSize) people")
+                    }
+                }
+
+                Section {
+                    Button(action: breakout) {
+                        Text(store.groups.isEmpty ? "BREAKOUT" : "BREAKOUT AGAIN")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(store.activeParticipants.isEmpty)
+                    .scaleEffect(isPressingBreakout ? 0.98 : 1.0)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.6), value: isPressingBreakout)
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 0).updating($isPressingBreakout) { _, state, _ in
+                            state = true
+                        }
+                    )
+                }
+
+                Section("Groups") {
+                    if store.groups.isEmpty {
+                        Text("No groups yet. Tap BREAKOUT to create them.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(Array(store.groups.enumerated()), id: \.offset) { index, group in
+                            GroupRowView(
+                                index: index,
+                                group: group,
+                                revealID: revealID
+                            )
+                        }
                     }
                 }
             }
@@ -65,8 +85,22 @@ struct MainView: View {
 }
 
 #Preview {
-    MainView()
-        .environmentObject(BreakoutStore())
+    let store = BreakoutStore()
+    store.students = [
+        Person(id: UUID(), name: "Avery", isEnabled: true),
+        Person(id: UUID(), name: "Jordan", isEnabled: true),
+        Person(id: UUID(), name: "Sam", isEnabled: true),
+        Person(id: UUID(), name: "Riley", isEnabled: false)
+    ]
+    store.guests = [
+        Person(id: UUID(), name: "Casey", isEnabled: true)
+    ]
+    store.groups = [
+        [store.students[0], store.students[1], store.guests[0]],
+        [store.students[2], store.students[3]]
+    ]
+    return MainView()
+        .environmentObject(store)
 }
 
 private struct GroupRowView: View {
