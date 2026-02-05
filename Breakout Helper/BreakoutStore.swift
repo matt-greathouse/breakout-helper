@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SwiftUI
 
 @MainActor
 final class BreakoutStore: ObservableObject {
@@ -48,19 +49,11 @@ final class BreakoutStore: ObservableObject {
     }
 
     func removeStudents(at offsets: IndexSet) {
-        for offset in offsets.sorted(by: >) {
-            if students.indices.contains(offset) {
-                students.remove(at: offset)
-            }
-        }
+        students.remove(atOffsets: offsets)
     }
 
     func removeGuests(at offsets: IndexSet) {
-        for offset in offsets.sorted(by: >) {
-            if guests.indices.contains(offset) {
-                guests.remove(at: offset)
-            }
-        }
+        guests.remove(atOffsets: offsets)
     }
 
     func breakout(minGroupSize: Int) {

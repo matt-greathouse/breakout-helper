@@ -24,8 +24,8 @@ struct SettingsView: View {
                     }
                 )
 
-                ForEach($store.students) { $student in
-                    Toggle(student.name, isOn: $student.isEnabled)
+                ForEach(store.students) { student in
+                    Toggle(student.name, isOn: bindingForStudent(id: student.id))
                 }
                 .onDelete(perform: store.removeStudents)
             }
@@ -41,8 +41,8 @@ struct SettingsView: View {
                     }
                 )
 
-                ForEach($store.guests) { $guest in
-                    Toggle(guest.name, isOn: $guest.isEnabled)
+                ForEach(store.guests) { guest in
+                    Toggle(guest.name, isOn: bindingForGuest(id: guest.id))
                 }
                 .onDelete(perform: store.removeGuests)
             }
@@ -84,6 +84,32 @@ struct SettingsView: View {
             .disabled(text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(.vertical, 4)
+    }
+
+    private func bindingForStudent(id: UUID) -> Binding<Bool> {
+        Binding(
+            get: {
+                store.students.first(where: { $0.id == id })?.isEnabled ?? false
+            },
+            set: { newValue in
+                if let index = store.students.firstIndex(where: { $0.id == id }) {
+                    store.students[index].isEnabled = newValue
+                }
+            }
+        )
+    }
+
+    private func bindingForGuest(id: UUID) -> Binding<Bool> {
+        Binding(
+            get: {
+                store.guests.first(where: { $0.id == id })?.isEnabled ?? false
+            },
+            set: { newValue in
+                if let index = store.guests.firstIndex(where: { $0.id == id }) {
+                    store.guests[index].isEnabled = newValue
+                }
+            }
+        )
     }
 }
 
