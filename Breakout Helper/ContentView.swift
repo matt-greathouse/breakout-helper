@@ -8,21 +8,37 @@
 import SwiftUI
 
 struct ContentView: View {
+    private enum Tab: Int {
+        case breakout
+        case settings
+    }
+
+    @AppStorage("selectedTab.v1") private var selectedTab = Tab.breakout.rawValue
+    @AppStorage("hasLaunchedBefore.v1") private var hasLaunchedBefore = false
+
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             NavigationStack {
                 MainView()
             }
-                .tabItem {
-                    Label("Breakout", systemImage: "person.3.fill")
-                }
+            .tabItem {
+                Label("Breakout", systemImage: "person.3.fill")
+            }
+            .tag(Tab.breakout.rawValue)
 
             NavigationStack {
                 SettingsView()
             }
-                .tabItem {
-                    Label("Settings", systemImage: "slider.horizontal.3")
-                }
+            .tabItem {
+                Label("Settings", systemImage: "slider.horizontal.3")
+            }
+            .tag(Tab.settings.rawValue)
+        }
+        .onAppear {
+            if !hasLaunchedBefore {
+                selectedTab = Tab.settings.rawValue
+                hasLaunchedBefore = true
+            }
         }
     }
 }
