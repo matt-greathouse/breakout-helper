@@ -4,8 +4,6 @@ import UIKit
 struct MainView: View {
     @EnvironmentObject private var store: BreakoutStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @AppStorage("minGroupSize.v1") private var minGroupSize = 3
-
     let onOpenSettings: () -> Void
 
     @State private var isGenerating = false
@@ -36,6 +34,11 @@ struct MainView: View {
         .background(AppTheme.pageBackground.ignoresSafeArea())
         .navigationTitle("Breakout")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                ClassroomSelector()
+            }
+        }
         .onAppear { store.resetIfNeeded() }
         .onDisappear {
             revealTask?.cancel()
@@ -72,16 +75,19 @@ struct MainView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text("Minimum group size")
                     .font(.headline)
-                Text("Keep at least \(minGroupSize) people together")
+                Text("Keep at least \(store.minGroupSize) people together")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
 
-            Stepper("Minimum group size", value: $minGroupSize, in: 2...12)
+            Stepper("Minimum group size", value: Binding(
+                get: { store.minGroupSize },
+                set: { store.minGroupSize = $0 }
+            ), in: 2...12)
                 .labelsHidden()
-                .accessibilityValue("\(minGroupSize) people")
+                .accessibilityValue("\(store.minGroupSize) people")
                 .disabled(isGenerating)
         }
         .padding(16)
@@ -158,7 +164,7 @@ struct MainView: View {
         guard !isGenerating, !store.activeParticipants.isEmpty else { return }
 
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        store.breakout(minGroupSize: minGroupSize)
+        store.breakout()
         revealID = UUID()
 
         if reduceMotion {

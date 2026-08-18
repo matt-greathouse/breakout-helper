@@ -62,6 +62,11 @@ struct SettingsView: View {
         .background(AppTheme.pageBackground)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                ClassroomSelector()
+            }
+        }
         .onAppear { store.resetIfNeeded() }
         .scrollDismissesKeyboard(.interactively)
         .simultaneousGesture(TapGesture().onEnded {
@@ -104,6 +109,7 @@ struct SettingsView: View {
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
                 .focused($focusedField, equals: field)
+                .accessibilityIdentifier(field == .student ? "studentNameField" : "guestNameField")
                 .onSubmit { commit(text: text, field: field, action: action) }
 
             Button("Add") {
@@ -112,6 +118,7 @@ struct SettingsView: View {
             .buttonStyle(.borderedProminent)
             .tint(AppTheme.accent)
             .disabled(text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .accessibilityIdentifier(field == .student ? "addStudent" : "addGuest")
         }
         .padding(.vertical, 4)
     }
@@ -125,22 +132,14 @@ struct SettingsView: View {
     private func bindingForStudent(id: UUID) -> Binding<Bool> {
         Binding(
             get: { store.students.first(where: { $0.id == id })?.isEnabled ?? false },
-            set: { newValue in
-                if let index = store.students.firstIndex(where: { $0.id == id }) {
-                    store.students[index].isEnabled = newValue
-                }
-            }
+            set: { store.setStudentEnabled(id: id, isEnabled: $0) }
         )
     }
 
     private func bindingForGuest(id: UUID) -> Binding<Bool> {
         Binding(
             get: { store.guests.first(where: { $0.id == id })?.isEnabled ?? false },
-            set: { newValue in
-                if let index = store.guests.firstIndex(where: { $0.id == id }) {
-                    store.guests[index].isEnabled = newValue
-                }
-            }
+            set: { store.setGuestEnabled(id: id, isEnabled: $0) }
         )
     }
 }
