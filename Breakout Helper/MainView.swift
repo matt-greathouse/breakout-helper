@@ -10,6 +10,7 @@ struct MainView: View {
 
     @State private var isGenerating = false
     @State private var revealID = UUID()
+    @State private var revealTask: Task<Void, Never>?
 
     init(onOpenSettings: @escaping () -> Void = {}) {
         self.onOpenSettings = onOpenSettings
@@ -36,6 +37,11 @@ struct MainView: View {
         .navigationTitle("Breakout")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { store.resetIfNeeded() }
+        .onDisappear {
+            revealTask?.cancel()
+            revealTask = nil
+            isGenerating = false
+        }
     }
 
     private var summaryCard: some View {
@@ -76,6 +82,7 @@ struct MainView: View {
             Stepper("Minimum group size", value: $minGroupSize, in: 2...12)
                 .labelsHidden()
                 .accessibilityValue("\(minGroupSize) people")
+                .disabled(isGenerating)
         }
         .padding(16)
         .appCard()
@@ -98,7 +105,9 @@ struct MainView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 17)
         }
-        .buttonStyle(BreakoutButtonStyle())
+        .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.roundedRectangle(radius: AppTheme.cardCornerRadius))
+        .tint(AppTheme.accent)
         .disabled(store.activeParticipants.isEmpty || isGenerating)
         .accessibilityHint("Creates new participant groups")
     }
@@ -149,10 +158,10 @@ struct MainView: View {
         guard !isGenerating, !store.activeParticipants.isEmpty else { return }
 
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        store.breakout(minGroupSize: minGroupSize)
+        revealID = UUID()
 
         if reduceMotion {
-            store.breakout(minGroupSize: minGroupSize)
-            revealID = UUID()
             return
         }
 
@@ -160,14 +169,18 @@ struct MainView: View {
             isGenerating = true
         }
 
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(360))
+        revealTask?.cancel()
+        revealTask = Task { @MainActor in
+            do {
+                try await Task.sleep(for: .milliseconds(360))
+            } catch {
+                return
+            }
             guard !Task.isCancelled else { return }
-            store.breakout(minGroupSize: minGroupSize)
-            revealID = UUID()
             withAnimation(.snappy(duration: 0.25)) {
                 isGenerating = false
             }
+            revealTask = nil
         }
     }
 }
@@ -199,17 +212,6 @@ private struct EmptyStateView: View {
         .padding(28)
         .frame(maxWidth: .infinity)
         .appCard()
-    }
-}
-
-private struct BreakoutButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(.white)
-            .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous))
-            .opacity(configuration.isPressed ? 0.88 : 1)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.65), value: configuration.isPressed)
     }
 }
 
@@ -245,11 +247,7 @@ private struct GroupCardView: View {
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(group) { member in
                     HStack(spacing: 10) {
-                        Text(member.name.prefix(1).uppercased())
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(AppTheme.accent)
-                            .frame(width: 28, height: 28)
-                            .background(AppTheme.subtleSurface, in: Circle())
+                        InitialBadge(member.name)
                         Text(member.name)
                             .font(.body)
                         Spacer()

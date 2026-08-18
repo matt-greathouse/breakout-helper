@@ -15,8 +15,6 @@ enum AppTheme {
 }
 
 private struct AppCardModifier: ViewModifier {
-    let tint: Color
-
     func body(content: Content) -> some View {
         content
             .background {
@@ -24,14 +22,33 @@ private struct AppCardModifier: ViewModifier {
                     .fill(AppTheme.surface)
                     .overlay {
                         RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous)
-                            .stroke(tint.opacity(0.14), lineWidth: 1)
+                            .stroke(AppTheme.accent.opacity(0.14), lineWidth: 1)
                     }
             }
     }
 }
 
 extension View {
-    func appCard(tint: Color = AppTheme.accent) -> some View {
-        modifier(AppCardModifier(tint: tint))
+    func appCard() -> some View {
+        modifier(AppCardModifier())
+    }
+}
+
+struct InitialBadge: View {
+    let name: String
+    let size: CGFloat
+
+    init(_ name: String, size: CGFloat = 28) {
+        self.name = name
+        self.size = size
+    }
+
+    var body: some View {
+        Text(String(name.prefix(1)).uppercased())
+            .font(.caption.weight(.bold))
+            .foregroundStyle(AppTheme.accent)
+            .frame(width: size, height: size)
+            .background(AppTheme.subtleSurface, in: Circle())
+            .accessibilityHidden(true)
     }
 }

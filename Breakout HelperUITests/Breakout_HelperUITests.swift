@@ -26,18 +26,30 @@ final class Breakout_HelperUITests: XCTestCase {
     func testParticipantCanGenerateGroups() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-hasLaunchedBefore.v1", "YES"]
+        app.launchEnvironment["UITEST_RESET_DATA"] = "1"
         app.launch()
 
-        app.tabBars.buttons["Settings"].tap()
+        let settingsTab = app.tabBars.buttons["Settings"]
+        XCTAssertTrue(settingsTab.waitForExistence(timeout: 2))
+        settingsTab.tap()
+
         let studentField = app.textFields["Add student"]
+        XCTAssertTrue(studentField.waitForExistence(timeout: 2))
         for name in ["Avery", "Jordan", "Sam"] {
             studentField.tap()
             studentField.typeText(name)
-            app.buttons["Add"].firstMatch.tap()
+            let addButton = app.buttons["Add"].firstMatch
+            XCTAssertTrue(addButton.isHittable)
+            addButton.tap()
         }
 
-        app.tabBars.buttons["Breakout"].tap()
-        app.buttons["Break Out"].tap()
+        let breakoutTab = app.tabBars.buttons["Breakout"]
+        XCTAssertTrue(breakoutTab.waitForExistence(timeout: 2))
+        breakoutTab.tap()
+
+        let breakoutButton = app.buttons["Break Out"]
+        XCTAssertTrue(breakoutButton.waitForExistence(timeout: 2))
+        breakoutButton.tap()
 
         XCTAssertTrue(app.otherElements["groupCard-1"].waitForExistence(timeout: 3))
     }

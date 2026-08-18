@@ -152,11 +152,7 @@ private struct ParticipantToggleRow: View {
     var body: some View {
         Toggle(isOn: isOn) {
             HStack(spacing: 10) {
-                Text(person.name.prefix(1).uppercased())
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(AppTheme.accent)
-                    .frame(width: 30, height: 30)
-                    .background(AppTheme.subtleSurface, in: Circle())
+                InitialBadge(person.name, size: 30)
                 Text(person.name)
             }
         }
