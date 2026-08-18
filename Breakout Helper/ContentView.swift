@@ -19,7 +19,9 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                MainView()
+                MainView {
+                    selectedTab = Tab.settings.rawValue
+                }
             }
             .tabItem {
                 Label("Breakout", systemImage: "person.3.fill")

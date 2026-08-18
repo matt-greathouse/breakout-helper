@@ -27,6 +27,9 @@ final class BreakoutStore: ObservableObject {
     private var isLoading = true
 
     init() {
+        if ProcessInfo.processInfo.environment["UITEST_RESET_DATA"] == "1" {
+            clearPersistedData()
+        }
         loadFromDefaults()
         isLoading = false
         resetIfNeeded()
@@ -121,6 +124,11 @@ final class BreakoutStore: ObservableObject {
         if lastResetInterval > 0 {
             lastResetDate = Date(timeIntervalSince1970: lastResetInterval)
         }
+    }
+
+    private func clearPersistedData() {
+        let defaults = UserDefaults.standard
+        [studentsKey, guestsKey, historyKey, lastResetKey].forEach(defaults.removeObject(forKey:))
     }
 
     private func persistStudents() {
