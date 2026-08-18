@@ -12,8 +12,8 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        Form {
-            Section("Students") {
+        List {
+            Section {
                 addRow(
                     placeholder: "Add student",
                     text: $newStudentName,
@@ -25,12 +25,17 @@ struct SettingsView: View {
                 )
 
                 ForEach(store.students) { student in
-                    Toggle(student.name, isOn: bindingForStudent(id: student.id))
+                    ParticipantToggleRow(
+                        person: student,
+                        isOn: bindingForStudent(id: student.id)
+                    )
                 }
                 .onDelete(perform: store.removeStudents)
+            } header: {
+                sectionHeader("Students", count: store.students.count, detail: "Ready for every session")
             }
 
-            Section("Guests (clears daily)") {
+            Section {
                 addRow(
                     placeholder: "Add guest",
                     text: $newGuestName,
@@ -42,11 +47,19 @@ struct SettingsView: View {
                 )
 
                 ForEach(store.guests) { guest in
-                    Toggle(guest.name, isOn: bindingForGuest(id: guest.id))
+                    ParticipantToggleRow(
+                        person: guest,
+                        isOn: bindingForGuest(id: guest.id)
+                    )
                 }
                 .onDelete(perform: store.removeGuests)
+            } header: {
+                sectionHeader("Guests", count: store.guests.count, detail: "Clears daily")
             }
         }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.pageBackground)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { store.resetIfNeeded() }
@@ -56,6 +69,24 @@ struct SettingsView: View {
         })
     }
 
+    private func sectionHeader(_ title: String, count: Int, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack {
+                Text(title)
+                Spacer()
+                Text("\(count)")
+                    .foregroundStyle(AppTheme.accent)
+            }
+            Text(detail)
+                .font(.caption)
+                .textCase(nil)
+                .foregroundStyle(.secondary)
+        }
+        .textCase(nil)
+        .font(.subheadline.weight(.semibold))
+        .padding(.top, 8)
+    }
+
     private func addRow(
         placeholder: String,
         text: Binding<String>,
@@ -63,34 +94,37 @@ struct SettingsView: View {
         action: @escaping () -> Void
     ) -> some View {
         HStack(spacing: 12) {
-            let commit = {
-                if text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    return
-                }
-                action()
-                focusedField = field
-            }
+            Image(systemName: "plus")
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(AppTheme.accent)
+                .frame(width: 28, height: 28)
+                .background(AppTheme.subtleSurface, in: Circle())
 
             TextField(placeholder, text: text)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
                 .focused($focusedField, equals: field)
-                .onSubmit { commit() }
+                .onSubmit { commit(text: text, field: field, action: action) }
 
             Button("Add") {
-                commit()
+                commit(text: text, field: field, action: action)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
+            .tint(AppTheme.accent)
             .disabled(text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(.vertical, 4)
     }
 
+    private func commit(text: Binding<String>, field: Field, action: @escaping () -> Void) {
+        guard !text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        action()
+        focusedField = field
+    }
+
     private func bindingForStudent(id: UUID) -> Binding<Bool> {
         Binding(
-            get: {
-                store.students.first(where: { $0.id == id })?.isEnabled ?? false
-            },
+            get: { store.students.first(where: { $0.id == id })?.isEnabled ?? false },
             set: { newValue in
                 if let index = store.students.firstIndex(where: { $0.id == id }) {
                     store.students[index].isEnabled = newValue
@@ -101,9 +135,7 @@ struct SettingsView: View {
 
     private func bindingForGuest(id: UUID) -> Binding<Bool> {
         Binding(
-            get: {
-                store.guests.first(where: { $0.id == id })?.isEnabled ?? false
-            },
+            get: { store.guests.first(where: { $0.id == id })?.isEnabled ?? false },
             set: { newValue in
                 if let index = store.guests.firstIndex(where: { $0.id == id }) {
                     store.guests[index].isEnabled = newValue
@@ -113,17 +145,42 @@ struct SettingsView: View {
     }
 }
 
+private struct ParticipantToggleRow: View {
+    let person: Person
+    let isOn: Binding<Bool>
+
+    var body: some View {
+        Toggle(isOn: isOn) {
+            HStack(spacing: 10) {
+                Text(person.name.prefix(1).uppercased())
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppTheme.accent)
+                    .frame(width: 30, height: 30)
+                    .background(AppTheme.subtleSurface, in: Circle())
+                Text(person.name)
+            }
+        }
+        .tint(AppTheme.accent)
+        .padding(.vertical, 2)
+    }
+}
+
 #Preview {
     let store = BreakoutStore()
     store.students = [
         Person(id: UUID(), name: "Avery", isEnabled: true),
         Person(id: UUID(), name: "Jordan", isEnabled: false)
     ]
-    store.guests = [
-        Person(id: UUID(), name: "Casey", isEnabled: true)
-    ]
+    store.guests = [Person(id: UUID(), name: "Casey", isEnabled: true)]
     return NavigationStack {
         SettingsView()
             .environmentObject(store)
+    }
+}
+
+#Preview("Empty settings") {
+    NavigationStack {
+        SettingsView()
+            .environmentObject(BreakoutStore())
     }
 }

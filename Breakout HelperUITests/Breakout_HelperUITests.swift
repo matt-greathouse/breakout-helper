@@ -23,12 +23,23 @@ final class Breakout_HelperUITests: XCTestCase {
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testParticipantCanGenerateGroups() throws {
         let app = XCUIApplication()
+        app.launchArguments = ["-hasLaunchedBefore.v1", "YES"]
         app.launch()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        app.tabBars.buttons["Settings"].tap()
+        let studentField = app.textFields["Add student"]
+        for name in ["Avery", "Jordan", "Sam"] {
+            studentField.tap()
+            studentField.typeText(name)
+            app.buttons["Add"].firstMatch.tap()
+        }
+
+        app.tabBars.buttons["Breakout"].tap()
+        app.buttons["Break Out"].tap()
+
+        XCTAssertTrue(app.otherElements["groupCard-1"].waitForExistence(timeout: 3))
     }
 
     @MainActor
