@@ -31,10 +31,10 @@ final class BreakoutStore: ObservableObject {
 
         let migratedLegacyData = loadFromDefaults()
         isLoading = false
-        persistClassrooms()
+        let didPersistClassrooms = persistClassrooms()
         persistSelectedClassroom()
 
-        if migratedLegacyData {
+        if migratedLegacyData && didPersistClassrooms {
             clearLegacyData()
         }
 
@@ -74,7 +74,7 @@ final class BreakoutStore: ObservableObject {
     }
 
     var activeParticipants: [Person] {
-        (students + guests).filter { $0.isEnabled }
+        selectedClassroom.activeParticipants
     }
 
     @discardableResult
@@ -270,9 +270,11 @@ final class BreakoutStore: ObservableObject {
         return interval > 0 ? Date(timeIntervalSince1970: interval) : nil
     }
 
-    private func persistClassrooms() {
-        guard !isLoading, let data = try? JSONEncoder().encode(classrooms) else { return }
+    @discardableResult
+    private func persistClassrooms() -> Bool {
+        guard !isLoading, let data = try? JSONEncoder().encode(classrooms) else { return false }
         defaults.set(data, forKey: classroomsKey)
+        return true
     }
 
     private func persistSelectedClassroom() {

@@ -28,11 +28,8 @@ private struct ClassroomManagerView: View {
     @EnvironmentObject private var store: BreakoutStore
     @Environment(\.dismiss) private var dismiss
 
-    @State private var isShowingNewClassAlert = false
-    @State private var isShowingRenameAlert = false
     @State private var className = ""
-    @State private var classroomToRename: Classroom?
-    @State private var classroomToDelete: Classroom?
+    @State private var pendingAction: PendingAction?
 
     var body: some View {
         NavigationStack {
@@ -41,10 +38,13 @@ private struct ClassroomManagerView: View {
                     ForEach(store.classrooms) { classroom in
                         ClassroomListRow(
                             classroom: classroom,
-                            name: $className,
-                            classroomToRename: $classroomToRename,
-                            classroomToDelete: $classroomToDelete,
-                            isShowingRenameAlert: $isShowingRenameAlert
+                            onRename: {
+                                className = classroom.name
+                                pendingAction = .rename(classroom)
+                            },
+                            onDelete: {
+                                pendingAction = .delete(classroom)
+                            }
                         )
                     }
                 } header: {
@@ -62,7 +62,7 @@ private struct ClassroomManagerView: View {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         className = ""
-                        isShowingNewClassAlert = true
+                        pendingAction = .new
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -70,53 +70,83 @@ private struct ClassroomManagerView: View {
                     .accessibilityLabel("Add class")
                 }
             }
-            .alert("New Class", isPresented: $isShowingNewClassAlert) {
+            .alert("New Class", isPresented: isShowingNewClassAlert) {
                 TextField("Class name", text: $className)
                     .accessibilityIdentifier("newClassNameField")
                 Button("Cancel", role: .cancel) {}
                 Button("Add") {
                     if store.addClassroom(name: className) {
                         className = ""
+                        pendingAction = nil
                     }
+                }
+            } message: {
+                Text("Choose a new name for this class.")
+            }
+            .alert("Rename Class", isPresented: isShowingRenameAlert) {
+                TextField("Class name", text: $className)
+                Button("Cancel", role: .cancel) {
+                    pendingAction = nil
+                }
+                Button("Save") {
+                    if case let .rename(classroom)? = pendingAction {
+                        _ = store.renameClassroom(id: classroom.id, to: className)
+                    }
+                    pendingAction = nil
                 }
             } message: {
                 Text("Give this class a name.")
             }
-            .alert("Rename Class", isPresented: $isShowingRenameAlert) {
-                TextField("Class name", text: $className)
-                Button("Cancel", role: .cancel) {
-                    classroomToRename = nil
-                }
-                Button("Save") {
-                    if let classroomToRename {
-                        _ = store.renameClassroom(id: classroomToRename.id, to: className)
-                    }
-                    classroomToRename = nil
-                }
-            }
             .alert("Delete Class?", isPresented: isShowingDeleteConfirmation) {
                 Button("Cancel", role: .cancel) {
-                    classroomToDelete = nil
+                    pendingAction = nil
                 }
                 Button("Delete", role: .destructive) {
-                    if let classroomToDelete {
-                        _ = store.deleteClassroom(id: classroomToDelete.id)
+                    if case let .delete(classroom)? = pendingAction {
+                        _ = store.deleteClassroom(id: classroom.id)
                     }
-                    classroomToDelete = nil
+                    pendingAction = nil
                 }
             } message: {
-                Text("This permanently removes \(classroomToDelete?.name ?? "this class") and its people and history.")
+                Text("This permanently removes \(pendingClassroomName) and its people and history.")
             }
         }
     }
 
-    private var isShowingDeleteConfirmation: Binding<Bool> {
+    private var isShowingNewClassAlert: Binding<Bool> {
         Binding(
-            get: { classroomToDelete != nil },
-            set: { if !$0 { classroomToDelete = nil } }
+            get: {
+                if case .new? = pendingAction { return true }
+                return false
+            },
+            set: { if !$0 { pendingAction = nil } }
         )
     }
 
+    private var isShowingRenameAlert: Binding<Bool> {
+        Binding(
+            get: {
+                if case .rename = pendingAction { return true }
+                return false
+            },
+            set: { if !$0 { pendingAction = nil } }
+        )
+    }
+
+    private var isShowingDeleteConfirmation: Binding<Bool> {
+        Binding(
+            get: {
+                if case .delete = pendingAction { return true }
+                return false
+            },
+            set: { if !$0 { pendingAction = nil } }
+        )
+    }
+
+    private var pendingClassroomName: String {
+        guard case let .delete(classroom)? = pendingAction else { return "this class" }
+        return classroom.name
+    }
 }
 
 private struct ClassroomListRow: View {
@@ -124,10 +154,8 @@ private struct ClassroomListRow: View {
     @Environment(\.dismiss) private var dismiss
 
     let classroom: Classroom
-    @Binding var name: String
-    @Binding var classroomToRename: Classroom?
-    @Binding var classroomToDelete: Classroom?
-    @Binding var isShowingRenameAlert: Bool
+    let onRename: () -> Void
+    let onDelete: () -> Void
 
     var body: some View {
         Button {
@@ -148,9 +176,7 @@ private struct ClassroomListRow: View {
         .accessibilityIdentifier("classroomRow-\(classroom.id.uuidString)")
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button {
-                classroomToRename = classroom
-                name = classroom.name
-                isShowingRenameAlert = true
+                onRename()
             } label: {
                 Label("Rename", systemImage: "pencil")
             }
@@ -158,11 +184,17 @@ private struct ClassroomListRow: View {
 
             if store.classrooms.count > 1 {
                 Button(role: .destructive) {
-                    classroomToDelete = classroom
+                    onDelete()
                 } label: {
                     Label("Delete", systemImage: "trash")
                 }
             }
         }
     }
+}
+
+private enum PendingAction {
+    case new
+    case rename(Classroom)
+    case delete(Classroom)
 }
