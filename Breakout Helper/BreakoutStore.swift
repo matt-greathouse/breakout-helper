@@ -328,7 +328,19 @@ struct Classroom: Identifiable, Codable, Equatable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, students, guests, pairingHistory, minGroupSize, lastResetDate
+        case id, name, students, guests, pairingHistory, minGroupSize, lastResetDate, groups
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        students = try container.decode([Person].self, forKey: .students)
+        guests = try container.decode([Person].self, forKey: .guests)
+        pairingHistory = try container.decode([String: Int].self, forKey: .pairingHistory)
+        minGroupSize = min(max(try container.decode(Int.self, forKey: .minGroupSize), 2), 12)
+        lastResetDate = try container.decodeIfPresent(Date.self, forKey: .lastResetDate)
+        groups = try container.decodeIfPresent([[Person]].self, forKey: .groups) ?? []
     }
 }
 

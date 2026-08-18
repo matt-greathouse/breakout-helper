@@ -62,7 +62,7 @@ struct Breakout_HelperTests {
         #expect(store.students.map(\.name) == ["Casey"])
     }
 
-    @Test func selectionPersistsButGeneratedGroupsDoNot() {
+    @Test func selectionAndGeneratedGroupsPersist() {
         let defaults = makeDefaults()
         defer { removeDefaults(defaults) }
 
@@ -78,6 +78,29 @@ struct Breakout_HelperTests {
         let restoredStore = BreakoutStore(defaults: defaults)
         #expect(restoredStore.selectedClassroom.id == selectedID)
         restoredStore.selectClassroom(id: store.classrooms[0].id)
+        #expect(restoredStore.groups == store.classrooms[0].groups)
+    }
+
+    @Test func restoresClassroomsSavedBeforeGroupsWerePersisted() throws {
+        let defaults = makeDefaults()
+        defer { removeDefaults(defaults) }
+
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let student = Person(id: UUID(), name: "Avery", isEnabled: true)
+        let classroom = Classroom(
+            name: "Algebra",
+            students: [student],
+            lastResetDate: now
+        )
+        defaults.set(
+            try JSONEncoder().encode([ClassroomWithoutSavedGroups(classroom)]),
+            forKey: "classrooms.v2"
+        )
+
+        let restoredStore = BreakoutStore(defaults: defaults, now: now)
+
+        #expect(restoredStore.selectedClassroom.name == "Algebra")
+        #expect(restoredStore.students == [student])
         #expect(restoredStore.groups.isEmpty)
     }
 
@@ -145,5 +168,25 @@ struct Breakout_HelperTests {
             return
         }
         defaults.removePersistentDomain(forName: suiteName)
+    }
+}
+
+private struct ClassroomWithoutSavedGroups: Encodable {
+    let id: UUID
+    let name: String
+    let students: [Person]
+    let guests: [Person]
+    let pairingHistory: [String: Int]
+    let minGroupSize: Int
+    let lastResetDate: Date?
+
+    init(_ classroom: Classroom) {
+        id = classroom.id
+        name = classroom.name
+        students = classroom.students
+        guests = classroom.guests
+        pairingHistory = classroom.pairingHistory
+        minGroupSize = classroom.minGroupSize
+        lastResetDate = classroom.lastResetDate
     }
 }
